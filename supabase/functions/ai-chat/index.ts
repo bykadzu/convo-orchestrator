@@ -93,17 +93,26 @@ async function callOpenAI(apiKey: string, model: string, messages: any[]) {
     body: JSON.stringify({
       model,
       messages,
+      stream: true,
       max_tokens: 1000,
       temperature: 0.7
     })
   })
 
-  const data = await response.json()
-  if (!response.ok) {
+  if (!response.ok || !response.body) {
+    const data = await response.json()
     throw new Error(`OpenAI API error: ${data.error?.message || 'Unknown error'}`)
   }
 
-  return data.choices[0].message.content
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let result = ''
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    result += decoder.decode(value, { stream: true })
+  }
+  return result
 }
 
 async function callAnthropic(apiKey: string, model: string, messages: any[]) {
