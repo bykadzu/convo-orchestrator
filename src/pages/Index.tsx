@@ -9,6 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import {
+  initSocket,
+  disconnectSocket,
+  MessageChunk,
+  SessionState as SocketSessionState,
+} from '@/lib/socket';
 
 interface SessionState {
   sessionId: string;
@@ -76,6 +82,55 @@ const Index = () => {
       loadActiveConfiguration();
     }
   }, [user]);
+
+  // Socket connection
+  useEffect(() => {
+    const socket = initSocket();
+    const handleConnect = () => setIsConnected(true);
+    const handleDisconnect = () => setIsConnected(false);
+    const handleChunk = (chunk: MessageChunk) => {
+      if (!currentSession || chunk.sessionId !== currentSession.id) return;
+      if (chunk.isComplete) {
+        let full = '';
+        setCurrentMessages(prev => {
+          full = prev[chunk.modelType] + chunk.chunk;
+          return { ...prev, [chunk.modelType]: '' };
+        });
+        setMessages(prev => ({
+          ...prev,
+          [chunk.modelType]: [
+            ...prev[chunk.modelType],
+            {
+              id: crypto.randomUUID(),
+              type: 'ai',
+              content: full,
+              timestamp: new Date(),
+              modelType: chunk.modelType,
+            },
+          ],
+        }));
+        setTypingState(prev => ({ ...prev, [chunk.modelType]: false }));
+      } else {
+        setCurrentMessages(prev => ({
+          ...prev,
+          [chunk.modelType]: prev[chunk.modelType] + chunk.chunk,
+        }));
+        setTypingState(prev => ({ ...prev, [chunk.modelType]: true }));
+      }
+    };
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('messageChunk', handleChunk);
+    setIsConnected(socket.connected);
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off('messageChunk', handleChunk);
+      disconnectSocket();
+    };
+  }, [currentSession]);
 
   const loadActiveConfiguration = async () => {
     try {
@@ -147,6 +202,64 @@ const Index = () => {
       throw new Error(error.message || 'Failed to start session');
     }
   }, [toast]);
+
+  const handleSendMessage = useCallback(
+    async (model: 'A' | 'B', text: string) => {
+      if (!currentSession) return;
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'user',
+        content: text,
+        timestamp: new Date(),
+        modelType: model,
+      };
+      setMessages(prev => ({
+        ...prev,
+        [model]: [...prev[model], userMessage],
+      }));
+
+      try {
+        setTypingState(prev => ({ ...prev, [model]: true }));
+        const history = [
+          ...messages[model].map(m => ({
+            role: m.type === 'user' ? 'user' : 'assistant',
+            content: m.content,
+          })),
+          { role: 'user', content: text },
+        ];
+        const result = await AIService.sendMessage(
+          currentSession.id,
+          history,
+          model
+        );
+        setMessages(prev => ({
+          ...prev,
+          [model]: [
+            ...prev[model],
+            {
+              id: crypto.randomUUID(),
+              type: 'ai',
+              content: result.response,
+              timestamp: new Date(),
+              modelType: model,
+            },
+          ],
+        }));
+        setSessionState(prev =>
+          prev ? { ...prev, turnCount: prev.turnCount + 1 } : null
+        );
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to send message.',
+          variant: 'destructive',
+        });
+      } finally {
+        setTypingState(prev => ({ ...prev, [model]: false }));
+      }
+    },
+    [currentSession, messages, toast]
+  );
 
   const handlePause = useCallback(async () => {
     if (!currentSession) return;
@@ -305,6 +418,7 @@ const Index = () => {
               messages={messages.A}
               isTyping={typingState.A}
               currentMessage={currentMessages.A}
+              onSend={(text) => handleSendMessage('A', text)}
             />
           </div>
 
@@ -316,6 +430,7 @@ const Index = () => {
               messages={messages.B}
               isTyping={typingState.B}
               currentMessage={currentMessages.B}
+              onSend={(text) => handleSendMessage('B', text)}
             />
           </div>
 

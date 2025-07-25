@@ -1,6 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export interface Message {
   id: string;
@@ -16,10 +18,12 @@ interface ChatPanelProps {
   messages: Message[];
   isTyping: boolean;
   currentMessage?: string;
+  onSend: (text: string) => void;
 }
 
-export const ChatPanel = ({ title, modelType, messages, isTyping, currentMessage }: ChatPanelProps) => {
+export const ChatPanel = ({ title, modelType, messages, isTyping, currentMessage, onSend }: ChatPanelProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -97,6 +101,26 @@ export const ChatPanel = ({ title, modelType, messages, isTyping, currentMessage
         
         <div ref={messagesEndRef} />
       </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!input.trim()) return;
+          onSend(input.trim());
+          setInput('');
+        }}
+        className="p-4 border-t border-border flex gap-2"
+      >
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          className="flex-1 bg-input border-border"
+        />
+        <Button type="submit" size="sm">
+          Send
+        </Button>
+      </form>
     </Card>
   );
 };

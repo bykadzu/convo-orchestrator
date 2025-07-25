@@ -1,73 +1,47 @@
-# Welcome to your Lovable project
+# AI Steering Hub
 
-## Project info
+This project is a Vite + React application that connects to Supabase and various AI providers. It features two chat panels for side by side model comparison and an overseer panel for controlling active sessions.
 
-**URL**: https://lovable.dev/projects/749f04cc-9f7c-41ea-a9b5-6c8db1025271
+## Prerequisites
 
-## How can I edit this code?
+- Node.js 18+
+- A Supabase project
 
-There are several ways of editing your application.
+## Local Setup
 
-**Use Lovable**
+```bash
+# clone and install
+git clone <repo-url>
+cd convo-orchestrator
+npm install
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/749f04cc-9f7c-41ea-a9b5-6c8db1025271) and start prompting.
+# copy environment variables
+cp .env.example .env
+# edit .env with your Supabase URL and anon key
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# run in development
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Supabase Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Create a new project in Supabase.
+2. Replace `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env` with the values from your project.
+3. Run the SQL migrations in `supabase/migrations` to create tables.
+4. Deploy the edge functions found in `supabase/functions`.
 
-**Use GitHub Codespaces**
+## Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Any static hosting that supports Vite can be used (e.g. Vercel or Netlify). Ensure the environment variables are set in your deployment platform.
 
-## What technologies are used for this project?
+## Usage
 
-This project is built with:
+Configure your preferred AI provider and models using the Settings dialog. Start a session and converse with the models in each panel. The overseer panel allows pausing, resuming and exporting sessions.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Testing
 
-## How can I deploy this project?
+Run the unit tests using:
 
-Simply open [Lovable](https://lovable.dev/projects/749f04cc-9f7c-41ea-a9b5-6c8db1025271) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```bash
+npm test
+```
